@@ -38,62 +38,41 @@ h1{
     border:8px solid #fbbf24;
     position:relative;
     background:radial-gradient(circle,#1e293b,#0b1220);
-    transition:transform 0.1s linear;
+    transition:transform 0.1s linear, border-color 0.3s;
 }
 
-/* NAMA ARAH */
-.north{
+/* arah */
+.north,.south,.east,.west{
     position:absolute;
-    top:10px;
-    left:50%;
-    transform:translateX(-50%);
-    font-weight:bold;
-    color:#60a5fa;
-}
-.south{
-    position:absolute;
-    bottom:10px;
-    left:50%;
-    transform:translateX(-50%);
     font-weight:bold;
 }
-.east{
-    position:absolute;
-    right:10px;
-    top:50%;
-    transform:translateY(-50%);
-    font-weight:bold;
-}
-.west{
-    position:absolute;
-    left:10px;
-    top:50%;
-    transform:translateY(-50%);
-    font-weight:bold;
-}
+.north{top:10px;left:50%;transform:translateX(-50%);color:#60a5fa;}
+.south{bottom:10px;left:50%;transform:translateX(-50%);}
+.east{right:10px;top:50%;transform:translateY(-50%);}
+.west{left:10px;top:50%;transform:translateY(-50%);}
 
-/* KA'BAH CENTER */
+/* KA'BAH */
 .kaaba{
     position:absolute;
     top:50%;
     left:50%;
     transform:translate(-50%,-50%);
-    font-size:50px;
+    font-size:52px;
     z-index:3;
 }
 
-/* PANAH KIBLAT */
+/* PANAH */
 .qibla-arrow{
     position:absolute;
     top:50%;
     left:50%;
     width:0;
     height:0;
-    transform-origin:center;
     border-left:14px solid transparent;
     border-right:14px solid transparent;
     border-bottom:130px solid #22c55e;
     filter:drop-shadow(0 0 8px #22c55e);
+    transform-origin:center;
     z-index:2;
 }
 
@@ -156,6 +135,7 @@ button{
 <div class="info">
 <p id="loc">Lokasi: -</p>
 <p id="qibla">Kiblat: -</p>
+<p id="status">Status: -</p>
 </div>
 
 <script>
@@ -163,8 +143,9 @@ const KAABA_LAT = 21.4225;
 const KAABA_LON = 39.8262;
 
 let qiblaDirection = 0;
+let lastSpeak = 0;
 
-/* HITUNG ARAH KIBLAT */
+/* HITUNG KIBLAT */
 function calculateQibla(lat, lon){
     const φK = KAABA_LAT * Math.PI/180;
     const λK = KAABA_LON * Math.PI/180;
@@ -193,7 +174,14 @@ navigator.geolocation.getCurrentPosition(pos=>{
     `Kiblat: ${qiblaDirection.toFixed(1)}°`;
 });
 
-/* SENSOR KOMPAZ */
+/* SUARA */
+function speak(text){
+    let msg = new SpeechSynthesisUtterance(text);
+    msg.lang = "id-ID";
+    speechSynthesis.speak(msg);
+}
+
+/* SENSOR */
 function startCompass(){
 window.addEventListener("deviceorientation", (event)=>{
 
@@ -209,11 +197,34 @@ if(event.webkitCompassHeading){
 document.getElementById("compass").style.transform =
 `rotate(${-heading}deg)`;
 
-/* ROTASI PANAH KIBLAT */
+/* HITUNG SELISIH */
+const diff = Math.abs(qiblaDirection - heading);
+const normalized = diff > 180 ? 360 - diff : diff;
+
+/* PANAH */
 const arrow = qiblaDirection - heading;
 
 document.getElementById("qiblaArrow").style.transform =
 `translate(-50%,-50%) rotate(${arrow}deg)`;
+
+/* STATUS WARNA */
+const compass = document.getElementById("compass");
+const status = document.getElementById("status");
+
+if(normalized < 10){
+    compass.style.borderColor = "#3b82f6"; // BIRU BENAR
+    status.innerText = "Status: Arah Kiblat BENAR";
+
+    let now = Date.now();
+    if(now - lastSpeak > 5000){
+        speak("Ini kiblat yang benar");
+        lastSpeak = now;
+    }
+
+}else{
+    compass.style.borderColor = "#ef4444"; // MERAH SALAH
+    status.innerText = "Status: Arah belum tepat";
+}
 
 });
 }
