@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compass Finder Arah Kiblat Makkah</title>
+
+<link rel="manifest" href="manifest.json">
+
+<style>
+body{
+    margin:0;
+    font-family:Arial,sans-serif;
+    background:#0f172a;
+    color:white;
+    text-align:center;
+}
+
+header{
+    background:#111827;
+    padding:20px;
+}
+
+h1{
+    margin:0;
+    color:#fbbf24;
+}
+
+.compass-container{
+    margin-top:30px;
+}
+
+.compass{
+    width:300px;
+    height:300px;
+    margin:auto;
+    border:8px solid #fbbf24;
+    border-radius:50%;
+    position:relative;
+    transition:transform 0.1s linear;
+    background:radial-gradient(circle,#1e293b,#0f172a);
+}
+
+.center{
+    width:20px;
+    height:20px;
+    background:#fbbf24;
+    border-radius:50%;
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+}
+
+.arrow{
+    position:absolute;
+    width:6px;
+    height:120px;
+    background:red;
+    left:50%;
+    top:30px;
+    transform:translateX(-50%);
+    border-radius:10px;
+}
+
+.info{
+    margin-top:20px;
+    font-size:18px;
+}
+
+button{
+    margin-top:15px;
+    padding:10px 20px;
+    border:none;
+    border-radius:8px;
+    background:#fbbf24;
+    cursor:pointer;
+    font-weight:bold;
+}
+</style>
+</head>
+<body>
+
+<header>
+<h1>🕋 Compass Finder Arah Kiblat Makkah</h1>
+<p>Menentukan arah kiblat berdasarkan lokasi Anda</p>
+</header>
+
+<div class="compass-container">
+    <div id="compass" class="compass">
+        <div class="arrow"></div>
+        <div class="center"></div>
+    </div>
+
+    <button onclick="requestCompass()">
+        Aktifkan Kompas
+    </button>
+
+    <div class="info">
+        <p id="location">Lokasi: Menunggu GPS...</p>
+        <p id="qibla">Arah Kiblat: -</p>
+    </div>
+</div>
+
+<script>
+const KAABA_LAT = 21.4225;
+const KAABA_LON = 39.8262;
+
+function calculateQibla(lat, lon) {
+    const φK = KAABA_LAT * Math.PI/180;
+    const λK = KAABA_LON * Math.PI/180;
+    const φ = lat * Math.PI/180;
+    const λ = lon * Math.PI/180;
+
+    const y = Math.sin(λK-λ);
+    const x = Math.cos(φ)*Math.tan(φK) -
+              Math.sin(φ)*Math.cos(λK-λ);
+
+    let bearing = Math.atan2(y,x) * 180/Math.PI;
+    return (bearing + 360) % 360;
+}
+
+navigator.geolocation.getCurrentPosition(pos=>{
+    const lat = pos.coords.latitude;
+    const lon = pos.coords.longitude;
+
+    document.getElementById("location").innerHTML =
+      `Lokasi: ${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+
+    const qibla = calculateQibla(lat, lon);
+
+    document.getElementById("qibla").innerHTML =
+      `Arah Kiblat: ${qibla.toFixed(1)}°`;
+});
+
+function requestCompass(){
+
+if (
+typeof DeviceOrientationEvent !== "undefined" &&
+typeof DeviceOrientationEvent.requestPermission === "function"
+){
+DeviceOrientationEvent.requestPermission()
+.then(permissionState=>{
+if(permissionState==="granted"){
+startCompass();
+}
+});
+}else{
+startCompass();
+}
+
+}
+
+function startCompass(){
+window.addEventListener("deviceorientation", event=>{
+
+let heading;
+
+if(event.webkitCompassHeading){
+heading = event.webkitCompassHeading;
+}else{
+heading = 360 - event.alpha;
+}
+
+document.getElementById("compass").style.transform =
+`rotate(${-heading}deg)`;
+
+});
+}
+</script>
+
+</body>
+</html>
